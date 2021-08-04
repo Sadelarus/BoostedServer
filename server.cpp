@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind/bind.hpp>
+#include "includes.h"
 
 #if BOOST_VERSION >= 107000
 #define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
@@ -22,8 +23,8 @@ class con_handler : public boost::enable_shared_from_this<con_handler>
 {
 private:
     tcp::socket sock;
-    enum { max_length = sizeof(double)*2 };
-    std::uint8_t data[max_length];
+    enum { max_length = sizeof(CalcData) };
+    unData data;
 
 public:
     typedef boost::shared_ptr<con_handler> pointer;
@@ -49,7 +50,7 @@ public:
     void start()
     {
         auto p = shared_from_this();
-        socket().async_receive(boost::asio::buffer(this->data, max_length),
+        socket().async_receive(boost::asio::buffer(&data.args, sizeof(data.args)),
                                 [p](const boost::system::error_code& error,
                                     std::size_t bytes_transferred) {
                                     p->handle_read(error, bytes_transferred);
@@ -64,21 +65,16 @@ public:
             return;
         }
         std::cout << "[" << bytes_transferred << "] bytes have been received" << std::endl;
-        double a1;
-        double a2;
 
-        std::memcpy(&a1, data, sizeof(double));
-        std::memcpy(&a2, data + sizeof(double), sizeof(double));
+        double r = data.args.a + data.args.b;
 
-        double res = a1 + a2;
+        std::cout << "Result: " << data.args.a << " + " << data.args.b << " = " << r << std::endl;
 
-        std::cout << "Result: " << a1 << " + " << a2 << " = " << res << std::endl;
-
-        std::memcpy(data, &res, double(res));
+        data.res.res = r;
 
         auto p = shared_from_this();
 
-        socket().async_send(boost::asio::buffer(data, double(res)),
+        socket().async_send(boost::asio::buffer(&data.res, sizeof(data.res)),
                             [p](const boost::system::error_code& error,
                                     std::size_t bytes_transferred) {
                                 p->handle_write(error, bytes_transferred);
