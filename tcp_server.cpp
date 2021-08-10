@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind/bind.hpp>
+#include <boost/program_options.hpp>
 #include "includes.h"
 
 #if BOOST_VERSION >= 107000
@@ -115,8 +116,8 @@ private:
 
 public:
 //constructor for accepting connection from client
-    Server(boost::asio::io_service& io_service)
-    : acceptor_(io_service, tcp::endpoint(tcp::v4(), 8080))
+    Server(boost::asio::io_service& io_service, const std::string &addr, const std::uint16_t port)
+    : acceptor_(io_service, tcp::endpoint(ip::make_address(addr.c_str()), port))
     {
         start_accept();
     }
@@ -131,10 +132,29 @@ public:
 
 int main(int argc, char *argv[])
 {
+    std::string serverAddr = "127.0.0.1";
+    std::uint16_t port = 8080;
+    namespace po = boost::program_options;
+    po::options_description desc("Application options");
+    desc.add_options()
+    ("help,h", "Show help")
+    ("server-adr,s", po::value<std::string>(&serverAddr), "Server address")
+    ("server-port,p", po::value<std::uint16_t>(&port), "Server port");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+
+    if (vm.count("help") || argc == 1) {
+        std::cout << desc << std::endl;
+        return 1;
+    }
+
     try
     {
         boost::asio::io_service io_service;
-        Server server(io_service);
+        Server server(io_service, serverAddr, port);
         io_service.run();
     }
     catch(std::exception& e)

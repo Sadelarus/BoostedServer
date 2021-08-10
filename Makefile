@@ -1,14 +1,14 @@
 DESTDIR ?= ${HOME}/Boost/
-SOURCE1 = client.cpp
-SOURCE2 = server.cpp
+SOURCE1 = tcp_client.cpp
+SOURCE2 = tcp_server.cpp
 
 all: server client
 
 server: ${SOURCE2}
-	g++ ${SOURCE2} -g -o $@ -pthread
+	g++ ${SOURCE2} -g -o $@ -pthread -lboost_program_options
 
 client: ${SOURCE1}
-	g++ ${SOURCE1} -g -o $@ -pthread
+	g++ ${SOURCE1} -g -o $@ -pthread -lboost_program_options
 
 clean:
 	${RM} server
